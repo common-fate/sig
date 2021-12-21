@@ -1,0 +1,11 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/common-fate/sig
+
+plugins:
+  - name: go
+    out: .
+    opt:
+      - paths=source_relative

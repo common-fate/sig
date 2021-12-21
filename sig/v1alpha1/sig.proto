@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package sig.v1alpha1;
+
+import "google/protobuf/timestamp.proto";
+
+// AssumeRoleSignatureRoleAccount is the payload which is signed 
+// by users to prove they have access to the private key 
+// associated with their Identity Certificate, to assume roles
+// with Granted.
+message AssumeRoleSignature {
+	string role = 1;
+	string account = 2;
+	google.protobuf.Timestamp timestamp = 3;
+	bytes certificate_fingerprint = 4;
+}
