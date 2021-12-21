@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"time"
 
@@ -50,14 +49,11 @@ func (a *AssumeRoleRequest) Sign(s crypto.Signer) ([]byte, error) {
 	return s.Sign(rand.Reader, digest, crypto.SHA256)
 }
 
-type ErrInvalidTimestamp struct {
-	Now           time.Time
-	SignatureTime time.Time
+type ErrInvalidSignature struct {
+	Reason string
 }
 
-func (e *ErrInvalidTimestamp) Error() string {
-	return fmt.Sprintf("signature timestamp %s was invalid (current time: %s)", e.SignatureTime.Format(time.RFC3339), e.Now.Format(time.RFC3339))
-}
+func (e ErrInvalidSignature) Error() string { return e.Reason }
 
 // Valid verifies that a signature is valid. It performs the following checks:
 //
@@ -67,7 +63,7 @@ func (e *ErrInvalidTimestamp) Error() string {
 //
 // Timestamps are considered valid if they have occurred up to 5 minutes before time.Now().
 // sig.WithVerificationTime() can be passed to customise this.
-func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...func(*verifyConf)) (bool, error) {
+func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...func(*verifyConf)) error {
 	cfg := &verifyConf{
 		Now:             time.Now(),
 		AllowedDuration: time.Minute * 5,
@@ -78,23 +74,26 @@ func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...fu
 
 	digest, err := a.Digest()
 	if err != nil {
-		return false, err
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("error building digest: %s", err.Error())}
 	}
 	key, ok := cert.PublicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return false, errors.New("certificate did not have ECDSA signing key")
+		return &ErrInvalidSignature{Reason: "certificate did not have ECDSA signing key"}
 	}
 
 	// check the timestamp in the payload matches
 	if a.Time.After(cfg.Now) {
-		return false, &ErrInvalidTimestamp{Now: cfg.Now, SignatureTime: a.Time}
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is in the future", a.Time.Format(time.RFC3339))}
 	}
 	if a.Time.Before(cfg.Now.Add(-cfg.AllowedDuration)) {
-		return false, &ErrInvalidTimestamp{Now: cfg.Now, SignatureTime: a.Time}
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is too old", a.Time.Format(time.RFC3339))}
 	}
 
 	valid := ecdsa.VerifyASN1(key, digest, sig)
-	return valid, nil
+	if !valid {
+		return &ErrInvalidSignature{Reason: "signature is invalid"}
+	}
+	return nil
 }
 
 type verifyConf struct {

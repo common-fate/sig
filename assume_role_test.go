@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
-	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -110,16 +109,15 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 		useInvalidData bool
 		cert           *x509.Certificate
 		time           time.Time
-		shouldBeValid  bool
 		err            error
 	}
 
 	tests := map[string]test{
-		"valid":                     {useInvalidData: false, time: time.Unix(11, 10), cert: cert, shouldBeValid: true},
-		"invalid data":              {useInvalidData: true, time: time.Unix(11, 10), cert: cert, shouldBeValid: false},
-		"invalid cert":              {useInvalidData: false, time: time.Unix(11, 10), cert: othercert, shouldBeValid: false},
-		"signature in future":       {useInvalidData: false, time: time.Unix(0, 0), cert: othercert, shouldBeValid: false, err: &ErrInvalidTimestamp{}},
-		"signature too far in past": {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: othercert, shouldBeValid: false, err: &ErrInvalidTimestamp{}},
+		"valid":                     {useInvalidData: false, time: time.Unix(11, 10), cert: cert, err: nil},
+		"invalid data":              {useInvalidData: true, time: time.Unix(11, 10), cert: cert, err: &ErrInvalidSignature{Reason: "signature is invalid"}},
+		"invalid cert":              {useInvalidData: false, time: time.Unix(11, 10), cert: othercert, err: &ErrInvalidSignature{Reason: "signature is invalid"}},
+		"signature in future":       {useInvalidData: false, time: time.Unix(0, 0), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T01:00:10+01:00 is in the future"}},
+		"signature too far in past": {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T01:00:10+01:00 is too old"}},
 	}
 
 	for name, tc := range tests {
@@ -135,20 +133,14 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 			r.Account = "different"
 		}
 
-		valid, err := r.Valid(sig, tc.cert, WithVerificationTime(tc.time, 5*time.Minute))
-		if tc.err != nil {
-			errMatches := errors.As(err, &tc.err)
-			if !errMatches {
-				t.Fatalf("%s: expected error: %v, got: %v", name, tc.err, err)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error but got: %v", err)
-			}
+		err = r.Valid(sig, tc.cert, WithVerificationTime(tc.time, 5*time.Minute))
+		if tc.err == nil && err != nil {
+			t.Fatalf("%s: expected no error but got: %+v", name, err)
 		}
-
-		if tc.shouldBeValid != valid {
-			t.Fatalf("%s: expected valid: %v, got: %v", name, tc.shouldBeValid, valid)
+		if tc.err != nil && err != nil {
+			if tc.err.Error() != err.Error() {
+				t.Fatalf("%s: expected: %+v, got: %+v", name, tc.err, err)
+			}
 		}
 	}
 }
