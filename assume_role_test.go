@@ -1,4 +1,4 @@
-package sigv1alpha1
+package sig
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package sigv1alpha1
+package sig
 
 import (
 	"crypto"
@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	sigv1alpha1 "github.com/common-fate/sig/sig/v1alpha1"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -24,7 +26,7 @@ type AssumeRoleRequest struct {
 // Digest builds the canonical digest of the assume role
 // payload which can be signed and verified.
 func (a *AssumeRoleRequest) Digest() ([]byte, error) {
-	p1 := AssumeRoleSignature{
+	p1 := sigv1alpha1.AssumeRoleSignature{
 		Role:                   a.Role,
 		Account:                a.Account,
 		Timestamp:              timestamppb.New(a.Time),
