@@ -164,7 +164,7 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 		}
 		if tc.err != nil && err != nil {
 			if tc.err.Error() != err.Error() {
-				t.Fatalf(" %s: input current time:%+v,  expected: %+v, got: %+v", name, tc.time, tc.err, err)
+				t.Fatalf(" %s: a.time:%+v , input current time:%+v,  expected: %+v, got: %+v", name, r.Time, tc.time, tc.err, err)
 			}
 		}
 	}
