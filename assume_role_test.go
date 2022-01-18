@@ -165,7 +165,7 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 		}
 		if tc.err != nil && err != nil {
 			if tc.err.Error() != err.Error() {
-				t.Fatalf(" %s: expected: %+v, got: %+v", name, tc.err, err)
+				t.Fatalf("%s: expected: %+v, got: %+v", name, tc.err, err)
 			}
 		}
 	}
