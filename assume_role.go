@@ -55,11 +55,20 @@ type ErrInvalidSignature struct {
 
 func (e ErrInvalidSignature) Error() string { return e.Reason }
 
+type ErrInvalidCertificate struct {
+	Reason string
+}
+
+func (e ErrInvalidCertificate) Error() string { return e.Reason }
+
 // Valid verifies that a signature is valid. It performs the following checks:
+// 1. Is the certificate missing validity interval information
 //
-// 1. Is the payload signature provided valid for the certificate?
+// 2. Is the certificate expired or not yet valid
 //
-// 2. Is the timestamp in the payload valid?
+// 3. Is the payload signature provided valid for the certificate?
+//
+// 4. Is the timestamp in the payload valid?
 //
 // Timestamps are considered valid if they have occurred up to 5 minutes before time.Now().
 // sig.WithVerificationTime() can be passed to customise this.
@@ -70,6 +79,23 @@ func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...fu
 	}
 	for _, o := range opts {
 		o(cfg)
+	}
+
+	// certificates must have NotBefore and NotAfter specified
+	var zeroTime time.Time
+	if cert.NotAfter.Equal(zeroTime) || cert.NotBefore.Equal(zeroTime) {
+		return &ErrInvalidSignature{Reason: "certificate does not have a validity interval specified"}
+	}
+	// certificates MUST be valid before a request is made
+	certificateNotYetValid := cert.NotBefore.After(cfg.Now)
+	if certificateNotYetValid {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate is not valid until %s", cert.NotBefore.Format(time.RFC3339))}
+	}
+
+	// certificates can have expired within the AllowedDuration
+	certificateExpired := cert.NotAfter.Before(cfg.Now.Add(-cfg.AllowedDuration))
+	if certificateExpired {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate already expired at %s", cert.NotAfter.Format(time.RFC3339))}
 	}
 
 	digest, err := a.Digest()
