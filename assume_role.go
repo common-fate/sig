@@ -89,13 +89,13 @@ func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...fu
 	// certificates MUST be valid before a request is made
 	certificateNotYetValid := cert.NotBefore.After(cfg.Now)
 	if certificateNotYetValid {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate is not valid until %s", cert.NotBefore.Format(time.RFC3339))}
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate is not valid until %s", cert.NotBefore.UTC().Format(time.RFC3339))}
 	}
 
 	// certificates can have expired within the AllowedDuration
 	certificateExpired := cert.NotAfter.Before(cfg.Now.Add(-cfg.AllowedDuration))
 	if certificateExpired {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate already expired at %s", cert.NotAfter.Format(time.RFC3339))}
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate already expired at %s", cert.NotAfter.UTC().Format(time.RFC3339))}
 	}
 
 	digest, err := a.Digest()
@@ -109,10 +109,10 @@ func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...fu
 
 	// check the timestamp in the payload matches
 	if a.Time.After(cfg.Now) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is in the future", a.Time.Format(time.RFC3339))}
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is in the future", a.Time.UTC().Format(time.RFC3339))}
 	}
 	if a.Time.Before(cfg.Now.Add(-cfg.AllowedDuration)) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is too old", a.Time.Format(time.RFC3339))}
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is too old", a.Time.UTC().Format(time.RFC3339))}
 	}
 
 	valid := ecdsa.VerifyASN1(key, digest, sig)

@@ -134,6 +134,7 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 	}
 
 	tests := map[string]test{
+
 		"valid":                         {useInvalidData: false, time: time.Unix(11, 10), cert: cert, err: nil},
 		"invalid data":                  {useInvalidData: true, time: time.Unix(11, 10), cert: cert, err: &ErrInvalidSignature{Reason: "signature is invalid"}},
 		"invalid cert":                  {useInvalidData: false, time: time.Unix(11, 10), cert: cert, err: &ErrInvalidSignature{Reason: "signature is invalid"}},
@@ -141,8 +142,8 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 		"certificate expired":           {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: cert, err: &ErrInvalidSignature{Reason: "certificate already expired at 1970-01-01T00:00:12Z"}},
 		"certificate missing NotBefore": {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: missingInforCert, err: &ErrInvalidSignature{Reason: "certificate does not have a validity interval specified"}},
 		"certificate missing NotAfter":  {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: missingInforCert, err: &ErrInvalidSignature{Reason: "certificate does not have a validity interval specified"}},
-		"signature in future":           {useInvalidData: false, time: time.Unix(0, 0), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T08:00:10+08:00 is in the future"}},
-		"signature too far in past":     {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T08:00:10+08:00 is too old"}},
+		"signature in future":           {useInvalidData: false, time: time.Unix(0, 0), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T00:00:10Z is in the future"}},
+		"signature too far in past":     {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T00:00:10Z is too old"}},
 	}
 
 	for name, tc := range tests {
@@ -164,7 +165,7 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 		}
 		if tc.err != nil && err != nil {
 			if tc.err.Error() != err.Error() {
-				t.Fatalf(" %s: a.time:%+v , input current time:%+v,  expected: %+v, got: %+v", name, r.Time, tc.time, tc.err, err)
+				t.Fatalf(" %s: expected: %+v, got: %+v", name, tc.err, err)
 			}
 		}
 	}
