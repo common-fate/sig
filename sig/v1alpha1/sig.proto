@@ -13,4 +13,5 @@ message AssumeRoleSignature {
 	string account = 2;
 	google.protobuf.Timestamp timestamp = 3;
 	bytes certificate_fingerprint = 4;
+	optional string reason = 5;
 }

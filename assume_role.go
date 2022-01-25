@@ -18,6 +18,7 @@ import (
 type AssumeRoleRequest struct {
 	Role            string
 	Account         string
+	Reason          *string
 	CertFingerprint []byte
 	Time            time.Time
 }
@@ -28,9 +29,11 @@ func (a *AssumeRoleRequest) Digest() ([]byte, error) {
 	p1 := sigv1alpha1.AssumeRoleSignature{
 		Role:                   a.Role,
 		Account:                a.Account,
+		Reason:                 a.Reason,
 		Timestamp:              timestamppb.New(a.Time),
 		CertificateFingerprint: a.CertFingerprint,
 	}
+
 	msg, err := proto.Marshal(&p1)
 	if err != nil {
 		return nil, err
