@@ -15,6 +15,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+type SignedAssumeRoleRequest struct {
+	AssumeRoleRequest
+	Sig []byte `json:"sig"`
+}
 type AssumeRoleRequest struct {
 	Role            string   `json:"role"`
 	Account         string   `json:"account"`
