@@ -24,8 +24,8 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 				Role:            "test",
 				Account:         "12345",
 				Group:           "developers",
-				CertFingerprint: []byte{0, 10, 20, 30},
-				Time:            time.Unix(10, 10),
+				CertFingerprint: [32]byte{0, 10, 20, 30},
+				TimeNanos:       time.Unix(10, 10).UnixNano(),
 			},
 			valid: true,
 		},
@@ -35,8 +35,8 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 				Role:            "test",
 				Account:         "12345",
 				Group:           "developers",
-				CertFingerprint: []byte{0, 10, 20, 30},
-				Time:            time.Unix(10, 11),
+				CertFingerprint: [32]byte{0, 10, 20, 30},
+				TimeNanos:       time.Unix(10, 11).UnixNano(),
 			},
 			valid: false,
 		},
@@ -45,8 +45,8 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 				Role:            "test",
 				Account:         "12345",
 				Group:           "developers",
-				CertFingerprint: []byte{0, 10, 20},
-				Time:            time.Unix(10, 10),
+				CertFingerprint: [32]byte{0, 10, 20},
+				TimeNanos:       time.Unix(10, 10).UnixNano(),
 			},
 			valid: false,
 		},
@@ -124,8 +124,8 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 	req := AssumeRoleRequest{
 		Role:            "test",
 		Account:         "12345",
-		CertFingerprint: []byte{0, 10, 20, 30},
-		Time:            time.Unix(10, 10),
+		CertFingerprint: [32]byte{0, 10, 20, 30},
+		TimeNanos:       time.Unix(10, 10).UnixNano(),
 	}
 
 	type test struct {

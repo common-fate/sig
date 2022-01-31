@@ -16,24 +16,30 @@ import (
 )
 
 type AssumeRoleRequest struct {
-	Role            string
-	Account         string
-	Group           string
-	Reason          *string
-	CertFingerprint []byte
-	Time            time.Time
+	Role            string   `json:"role"`
+	Account         string   `json:"account"`
+	Group           string   `json:"group"`
+	CertFingerprint [32]byte `json:"cert"`
+	Reason          *string  `json:"reason"`
+	// TimeNanos is the timestamp in UTC nanoseconds since epoch
+	TimeNanos int64 `json:"time"`
+}
+
+func (a *AssumeRoleRequest) Time() time.Time {
+	return time.Unix(0, a.TimeNanos)
 }
 
 // Digest builds the canonical digest of the assume role
 // payload which can be signed and verified.
 func (a *AssumeRoleRequest) Digest() ([]byte, error) {
+
 	p1 := sigv1alpha1.AssumeRoleSignature{
 		Role:                   a.Role,
 		Account:                a.Account,
 		Reason:                 a.Reason,
 		Group:                  a.Group,
-		Timestamp:              timestamppb.New(a.Time),
-		CertificateFingerprint: a.CertFingerprint,
+		Timestamp:              timestamppb.New(a.Time()),
+		CertificateFingerprint: a.CertFingerprint[:],
 	}
 
 	msg, err := proto.Marshal(&p1)
@@ -113,11 +119,11 @@ func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...fu
 	}
 
 	// check the timestamp in the payload matches
-	if a.Time.After(cfg.Now) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is in the future", a.Time.UTC().Format(time.RFC3339))}
+	if a.Time().After(cfg.Now) {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is in the future", a.Time().UTC().Format(time.RFC3339))}
 	}
-	if a.Time.Before(cfg.Now.Add(-cfg.AllowedDuration)) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is too old", a.Time.UTC().Format(time.RFC3339))}
+	if a.Time().Before(cfg.Now.Add(-cfg.AllowedDuration)) {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is too old", a.Time().UTC().Format(time.RFC3339))}
 	}
 
 	valid := ecdsa.VerifyASN1(key, digest, sig)
