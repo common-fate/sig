@@ -18,6 +18,7 @@ import (
 type AssumeRoleRequest struct {
 	Role            string
 	Account         string
+	Group           string
 	Reason          *string
 	CertFingerprint []byte
 	Time            time.Time
@@ -30,6 +31,7 @@ func (a *AssumeRoleRequest) Digest() ([]byte, error) {
 		Role:                   a.Role,
 		Account:                a.Account,
 		Reason:                 a.Reason,
+		Group:                  a.Group,
 		Timestamp:              timestamppb.New(a.Time),
 		CertificateFingerprint: a.CertFingerprint,
 	}

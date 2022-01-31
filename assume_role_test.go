@@ -23,6 +23,7 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 			input: AssumeRoleRequest{
 				Role:            "test",
 				Account:         "12345",
+				Group:           "developers",
 				CertFingerprint: []byte{0, 10, 20, 30},
 				Time:            time.Unix(10, 10),
 			},
@@ -33,6 +34,7 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 			input: AssumeRoleRequest{
 				Role:            "test",
 				Account:         "12345",
+				Group:           "developers",
 				CertFingerprint: []byte{0, 10, 20, 30},
 				Time:            time.Unix(10, 11),
 			},
@@ -42,6 +44,7 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 			input: AssumeRoleRequest{
 				Role:            "test",
 				Account:         "12345",
+				Group:           "developers",
 				CertFingerprint: []byte{0, 10, 20},
 				Time:            time.Unix(10, 10),
 			},
@@ -49,8 +52,7 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 		},
 	}
 
-	expected := []byte{128, 102, 227, 125, 169, 6, 16, 5, 57, 122, 3, 34, 188, 138, 134, 165, 84, 215, 21, 49, 132, 98, 199, 244, 83, 53, 238, 218, 137, 233, 104, 112}
-
+	expected := []byte{134, 2, 186, 88, 226, 84, 93, 14, 248, 226, 72, 134, 185, 38, 126, 207, 132, 160, 115, 176, 103, 113, 39, 104, 160, 117, 155, 206, 1, 21, 170, 122}
 	for _, tc := range tests {
 		digest, err := tc.input.Digest()
 		if err != nil {
