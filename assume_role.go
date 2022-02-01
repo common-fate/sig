@@ -22,7 +22,6 @@ type SignedAssumeRoleRequest struct {
 type AssumeRoleRequest struct {
 	Role            string   `json:"role"`
 	Account         string   `json:"account"`
-	Group           string   `json:"group"`
 	CertFingerprint [32]byte `json:"cert"`
 	Reason          *string  `json:"reason"`
 	// TimeNanos is the timestamp in UTC nanoseconds since epoch
@@ -41,7 +40,6 @@ func (a *AssumeRoleRequest) Digest() ([]byte, error) {
 		Role:                   a.Role,
 		Account:                a.Account,
 		Reason:                 a.Reason,
-		Group:                  a.Group,
 		Timestamp:              timestamppb.New(a.Time()),
 		CertificateFingerprint: a.CertFingerprint[:],
 	}

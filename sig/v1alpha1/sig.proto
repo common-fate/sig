@@ -14,5 +14,4 @@ message AssumeRoleSignature {
 	google.protobuf.Timestamp timestamp = 3;
 	bytes certificate_fingerprint = 4;
 	optional string reason = 5;
-	string group = 6;
 }
