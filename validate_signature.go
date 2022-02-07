@@ -10,8 +10,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// validates that the payload was signed by the certificate holder
 func ValidateProtoMessageSignature(payload protoreflect.ProtoMessage, signatureToVerify []byte, certificateToVerify *x509.Certificate) (bool, error) {
-	// payload must be signed by the submitter
 	signingBytes, err := proto.Marshal(payload)
 	if err != nil {
 		return false, err
