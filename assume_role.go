@@ -26,10 +26,11 @@ type SignedAssumeRoleRequest struct {
 	Sig []byte `json:"sig"`
 }
 type AssumeRoleRequest struct {
-	Role            string   `json:"role"`
-	Account         string   `json:"account"`
-	CertFingerprint [32]byte `json:"cert"`
-	Reason          *string  `json:"reason"`
+	Role                        string   `json:"role"`
+	Account                     string   `json:"account"`
+	CertFingerprint             [32]byte `json:"cert"`
+	Reason                      *string  `json:"reason"`
+	RoleAccessRequestMerkleHash []byte   `json:"rarMerkleHash"`
 	// TimeNanos is the timestamp in UTC nanoseconds since epoch
 	TimeNanos int64 `json:"time"`
 }
@@ -43,11 +44,12 @@ func (a *AssumeRoleRequest) Time() time.Time {
 func (a *AssumeRoleRequest) Digest() ([]byte, error) {
 
 	p1 := sigv1alpha1.AssumeRoleSignature{
-		Role:                   a.Role,
-		Account:                a.Account,
-		Reason:                 a.Reason,
-		Timestamp:              timestamppb.New(a.Time()),
-		CertificateFingerprint: a.CertFingerprint[:],
+		Role:                         a.Role,
+		Account:                      a.Account,
+		Reason:                       a.Reason,
+		Timestamp:                    timestamppb.New(a.Time()),
+		CertificateFingerprint:       a.CertFingerprint[:],
+		RoleAccess_RequestMerkleHash: a.RoleAccessRequestMerkleHash,
 	}
 
 	msg, err := proto.Marshal(&p1)
