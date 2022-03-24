@@ -30,7 +30,7 @@ type AssumeRoleRequest struct {
 	Account                     string   `json:"account"`
 	CertFingerprint             [32]byte `json:"cert"`
 	Reason                      *string  `json:"reason"`
-	TriggerToken                *string  `json: "token"`
+	TriggerToken                *string  `json:"token"`
 	RoleAccessRequestMerkleHash []byte   `json:"rarMerkleHash"`
 	// TimeNanos is the timestamp in UTC nanoseconds since epoch
 	TimeNanos int64 `json:"time"`
