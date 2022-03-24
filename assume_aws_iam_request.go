@@ -24,7 +24,6 @@ type SignedAssumeAwsIamRequest struct {
 
 type AssumeAwsIamRequest struct {
 	AssumeRequest
-	Role    string `json:"role"`
 	Account string `json:"account"`
 }
 

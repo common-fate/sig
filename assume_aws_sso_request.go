@@ -19,7 +19,6 @@ type SignedAssumeAwsSsoRequest struct {
 
 type AssumeAwsSsoRequest struct {
 	AssumeRequest
-
 	Account string `json:"account"`
 }
 

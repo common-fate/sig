@@ -21,9 +21,10 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 		{
 			// this one hashes to the digest that is hardcoded in the test
 			input: AssumeAwsIamRequest{
-				Role:    "test",
+
 				Account: "12345",
 				AssumeRequest: AssumeRequest{
+					Role:            "test",
 					CertFingerprint: [32]byte{0, 10, 20, 30},
 					TimeNanos:       time.Unix(10, 10).UnixNano(),
 				},
@@ -33,9 +34,10 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 		// other inputs should produce different hashes
 		{
 			input: AssumeAwsIamRequest{
-				Role:    "test",
+
 				Account: "12345",
 				AssumeRequest: AssumeRequest{
+					Role:            "test",
 					CertFingerprint: [32]byte{0, 10, 20, 30},
 					TimeNanos:       time.Unix(10, 11).UnixNano()},
 			},
@@ -43,9 +45,10 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 		},
 		{
 			input: AssumeAwsIamRequest{
-				Role:    "test",
+
 				Account: "12345",
 				AssumeRequest: AssumeRequest{
+					Role:            "test",
 					CertFingerprint: [32]byte{0, 10, 20},
 					TimeNanos:       time.Unix(10, 10).UnixNano(),
 				},
@@ -54,7 +57,7 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 		},
 	}
 
-	expected := []byte{26, 46, 106, 245, 167, 247, 165, 8, 219, 159, 69, 35, 242, 34, 222, 123, 28, 156, 168, 152, 151, 250, 132, 159, 245, 157, 63, 28, 66, 50, 125, 70}
+	expected := []byte{225, 188, 39, 220, 161, 200, 127, 42, 118, 123, 96, 37, 216, 191, 206, 24, 121, 208, 175, 78, 36, 223, 159, 152, 148, 35, 231, 239, 252, 169, 22, 143}
 
 	for _, tc := range tests {
 		digest, err := tc.input.Digest()
@@ -125,9 +128,10 @@ func TestVerifyAssumeAwsIamRequest(t *testing.T) {
 	}
 
 	req := AssumeAwsIamRequest{
-		Role:    "test",
+
 		Account: "12345",
 		AssumeRequest: AssumeRequest{
+			Role:            "test",
 			CertFingerprint: [32]byte{0, 10, 20, 30},
 			TimeNanos:       time.Unix(10, 10).UnixNano(),
 		},
