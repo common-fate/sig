@@ -19,7 +19,7 @@ type SignedAssumeAwsSsoRequest struct {
 
 type AssumeAwsSsoRequest struct {
 	AssumeRequest
-	Role    string `json:"role"`
+
 	Account string `json:"account"`
 }
 
@@ -28,7 +28,6 @@ type AssumeAwsSsoRequest struct {
 func (a *AssumeAwsSsoRequest) Digest() ([]byte, error) {
 	assumeBase := a.AssumeRequest.Proto()
 	p1 := sigv1alpha1.AssumeAwsSsoSignature{
-		Role:                a.Role,
 		Account:             a.Account,
 		AssumeSignatureBase: &assumeBase,
 	}

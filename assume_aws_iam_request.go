@@ -33,7 +33,6 @@ type AssumeAwsIamRequest struct {
 func (a *AssumeAwsIamRequest) Digest() ([]byte, error) {
 	assumeBase := a.AssumeRequest.Proto()
 	p1 := sigv1alpha1.AssumeAwsIamSignature{
-		Role:                a.Role,
 		Account:             a.Account,
 		AssumeSignatureBase: &assumeBase,
 	}

@@ -12,6 +12,7 @@ import (
 )
 
 type AssumeRequest struct {
+	Role                        string   `json:"role"`
 	CertFingerprint             [32]byte `json:"cert"`
 	Reason                      *string  `json:"reason"`
 	RoleAccessRequestMerkleHash []byte   `json:"rarMerkleHash"`
@@ -25,6 +26,7 @@ func (a *AssumeRequest) Time() time.Time {
 
 func (a *AssumeRequest) Proto() sigv1alpha1.AssumeSignature {
 	return sigv1alpha1.AssumeSignature{
+		Role:                        a.Role,
 		Reason:                      a.Reason,
 		Timestamp:                   timestamppb.New(a.Time()),
 		CertificateFingerprint:      a.CertFingerprint[:],
