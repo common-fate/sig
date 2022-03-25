@@ -22,7 +22,8 @@ type AssumeRequest struct {
 	// The access handler will use this to make a decision about whether this request is actually approved.
 	RoleAccessRequestMerkleHash []byte `json:"rarMerkleHash"`
 	// TimeNanos is the timestamp in UTC nanoseconds since epoch
-	TimeNanos int64 `json:"time"`
+	TimeNanos    int64   `json:"time"`
+	TriggerToken *string `json:"token"`
 }
 
 func (a *AssumeRequest) Time() time.Time {
