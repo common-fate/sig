@@ -3,16 +3,40 @@ syntax = "proto3";
 package sig.v1alpha1;
 
 import "google/protobuf/timestamp.proto";
-
-// AssumeRoleSignatureRoleAccount is the payload which is signed 
-// by users to prove they have access to the private key 
-// associated with their Identity Certificate, to assume roles
-// with Granted.
-message AssumeRoleSignature {
+// AssumeSignature forms part of a signed assume request payload
+message AssumeSignature {
 	string role = 1;
-	string account = 2;
-	google.protobuf.Timestamp timestamp = 3;
-	bytes certificate_fingerprint = 4;
-	optional string reason = 5;
-	optional bytes role_access_Request_merkle_hash = 6;
+	google.protobuf.Timestamp timestamp = 2;
+	bytes certificate_fingerprint = 3;
+	optional string reason = 4;
+	optional bytes role_access_request_merkle_hash = 5;
 }
+
+// AssumeAwsIamSignature is the payload which is signed 
+// by users to prove they have access to the private key 
+// associated with their Identity Certificate, to assume aws iam roles
+// with Granted.
+message AssumeAwsIamSignature {
+	AssumeSignature assume_signature_base =1;
+	string account = 2;
+}
+
+// AssumeAwsIamSignature is the payload which is signed 
+// by users to prove they have access to the private key 
+// associated with their Identity Certificate, to assume okta groups
+// with Granted.
+message AssumeOktaSignature {
+	AssumeSignature assume_signature_base =1;
+	string group = 2;
+}
+
+
+// AssumeAwsIamSignature is the payload which is signed 
+// by users to prove they have access to the private key 
+// associated with their Identity Certificate, to assume okta groups
+// with Granted.
+message AssumeAwsSsoSignature {
+	AssumeSignature assume_signature_base =1;
+	string account = 2;
+}
+

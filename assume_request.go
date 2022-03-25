@@ -1,73 +1,54 @@
 package sig
 
 import (
-	"crypto"
 	"crypto/ecdsa"
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
 	"time"
 
 	sigv1alpha1 "github.com/common-fate/sig/sig/v1alpha1"
 
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type AssumeRoleResults struct {
-	AccessKeyID     string
-	SecretAccessKey string
-	Expiration      *time.Time
-	SessionToken    string
-}
-type SignedAssumeRoleRequest struct {
-	AssumeRoleRequest
-	Sig []byte `json:"sig"`
-}
-type AssumeRoleRequest struct {
-	Role                        string   `json:"role"`
-	Account                     string   `json:"account"`
-	CertFingerprint             [32]byte `json:"cert"`
-	Reason                      *string  `json:"reason"`
-	RoleAccessRequestMerkleHash []byte   `json:"rarMerkleHash"`
+// AssumeRequest contains fields that are common across all access request types
+// Fields that are unique to a request type, for exampel Okta requires a Group.
+// Should be added on the specific request type which inherits from this base type
+type AssumeRequest struct {
+	Role            string   `json:"role"`
+	CertFingerprint [32]byte `json:"cert"`
+	Reason          *string  `json:"reason"`
+	// Used to identify an approval request that belongs to this request.
+	// The access handler will use this to make a decision about whether this request is actually approved.
+	RoleAccessRequestMerkleHash []byte `json:"rarMerkleHash"`
 	// TimeNanos is the timestamp in UTC nanoseconds since epoch
-	TimeNanos int64 `json:"time"`
+	TimeNanos    int64   `json:"time"`
+	TriggerToken *string `json:"token"`
 }
 
-func (a *AssumeRoleRequest) Time() time.Time {
+func (a *AssumeRequest) Time() time.Time {
 	return time.Unix(0, a.TimeNanos)
 }
 
-// Digest builds the canonical digest of the assume role
-// payload which can be signed and verified.
-func (a *AssumeRoleRequest) Digest() ([]byte, error) {
-
-	p1 := sigv1alpha1.AssumeRoleSignature{
-		Role:                         a.Role,
-		Account:                      a.Account,
-		Reason:                       a.Reason,
-		Timestamp:                    timestamppb.New(a.Time()),
-		CertificateFingerprint:       a.CertFingerprint[:],
-		RoleAccess_RequestMerkleHash: a.RoleAccessRequestMerkleHash,
+func (a *AssumeRequest) Proto() sigv1alpha1.AssumeSignature {
+	return sigv1alpha1.AssumeSignature{
+		Role:                        a.Role,
+		Reason:                      a.Reason,
+		Timestamp:                   timestamppb.New(a.Time()),
+		CertificateFingerprint:      a.CertFingerprint[:],
+		RoleAccessRequestMerkleHash: a.RoleAccessRequestMerkleHash,
 	}
-
-	msg, err := proto.Marshal(&p1)
-	if err != nil {
-		return nil, err
-	}
-	hash := sha256.Sum256(msg)
-
-	return hash[:], nil
 }
 
-// Sign an AssumeRole request.
-func (a *AssumeRoleRequest) Sign(s crypto.Signer) ([]byte, error) {
-	digest, err := a.Digest()
-	if err != nil {
-		return nil, err
-	}
-	return s.Sign(rand.Reader, digest, crypto.SHA256)
+// This interface makes it simple to support many request types
+type SignedDigestible interface {
+	// convert the payload to a hashable format and return the hash
+	Digest() ([]byte, error)
+	// The time of the request
+	Time() time.Time
+	// The signature of the request.
+	// This is validated against the digest to prove that the bearer of the certificate has access to the private key
+	Signature() []byte
 }
 
 type ErrInvalidSignature struct {
@@ -93,7 +74,7 @@ func (e ErrInvalidCertificate) Error() string { return e.Reason }
 //
 // Timestamps are considered valid if they have occurred up to 5 minutes before time.Now().
 // sig.WithVerificationTime() can be passed to customise this.
-func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...func(*verifyConf)) error {
+func Valid(signedPayload SignedDigestible, cert *x509.Certificate, opts ...func(*verifyConf)) error {
 	cfg := &verifyConf{
 		Now:             time.Now(),
 		AllowedDuration: time.Minute * 5,
@@ -118,8 +99,7 @@ func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...fu
 	if certificateExpired {
 		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate already expired at %s", cert.NotAfter.UTC().Format(time.RFC3339))}
 	}
-
-	digest, err := a.Digest()
+	digest, err := signedPayload.Digest()
 	if err != nil {
 		return &ErrInvalidSignature{Reason: fmt.Sprintf("error building digest: %s", err.Error())}
 	}
@@ -129,14 +109,14 @@ func (a *AssumeRoleRequest) Valid(sig []byte, cert *x509.Certificate, opts ...fu
 	}
 
 	// check the timestamp in the payload matches
-	if a.Time().After(cfg.Now) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is in the future", a.Time().UTC().Format(time.RFC3339))}
+	if signedPayload.Time().After(cfg.Now) {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("payload time %s is in the future", signedPayload.Time().UTC().Format(time.RFC3339))}
 	}
-	if a.Time().Before(cfg.Now.Add(-cfg.AllowedDuration)) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("signature time %s is too old", a.Time().UTC().Format(time.RFC3339))}
+	if signedPayload.Time().Before(cfg.Now.Add(-cfg.AllowedDuration)) {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("payload time %s is too old", signedPayload.Time().UTC().Format(time.RFC3339))}
 	}
 
-	valid := ecdsa.VerifyASN1(key, digest, sig)
+	valid := ecdsa.VerifyASN1(key, digest, signedPayload.Signature())
 	if !valid {
 		return &ErrInvalidSignature{Reason: "signature is invalid"}
 	}

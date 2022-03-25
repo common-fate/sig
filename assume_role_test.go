@@ -13,43 +13,51 @@ import (
 
 func TestBuildAssumeRoleDigest(t *testing.T) {
 	type test struct {
-		input AssumeRoleRequest
+		input AssumeAwsIamRequest
 		valid bool
 	}
 
 	tests := []test{
 		{
 			// this one hashes to the digest that is hardcoded in the test
-			input: AssumeRoleRequest{
-				Role:            "test",
-				Account:         "12345",
-				CertFingerprint: [32]byte{0, 10, 20, 30},
-				TimeNanos:       time.Unix(10, 10).UnixNano(),
+			input: AssumeAwsIamRequest{
+
+				Account: "12345",
+				AssumeRequest: AssumeRequest{
+					Role:            "test",
+					CertFingerprint: [32]byte{0, 10, 20, 30},
+					TimeNanos:       time.Unix(10, 10).UnixNano(),
+				},
 			},
 			valid: true,
 		},
 		// other inputs should produce different hashes
 		{
-			input: AssumeRoleRequest{
-				Role:            "test",
-				Account:         "12345",
-				CertFingerprint: [32]byte{0, 10, 20, 30},
-				TimeNanos:       time.Unix(10, 11).UnixNano(),
+			input: AssumeAwsIamRequest{
+
+				Account: "12345",
+				AssumeRequest: AssumeRequest{
+					Role:            "test",
+					CertFingerprint: [32]byte{0, 10, 20, 30},
+					TimeNanos:       time.Unix(10, 11).UnixNano()},
 			},
 			valid: false,
 		},
 		{
-			input: AssumeRoleRequest{
-				Role:            "test",
-				Account:         "12345",
-				CertFingerprint: [32]byte{0, 10, 20},
-				TimeNanos:       time.Unix(10, 10).UnixNano(),
+			input: AssumeAwsIamRequest{
+
+				Account: "12345",
+				AssumeRequest: AssumeRequest{
+					Role:            "test",
+					CertFingerprint: [32]byte{0, 10, 20},
+					TimeNanos:       time.Unix(10, 10).UnixNano(),
+				},
 			},
 			valid: false,
 		},
 	}
 
-	expected := []byte{118, 134, 239, 130, 98, 89, 237, 33, 49, 11, 234, 97, 1, 60, 137, 200, 19, 208, 108, 35, 110, 63, 151, 134, 37, 142, 69, 62, 90, 134, 230, 250}
+	expected := []byte{225, 188, 39, 220, 161, 200, 127, 42, 118, 123, 96, 37, 216, 191, 206, 24, 121, 208, 175, 78, 36, 223, 159, 152, 148, 35, 231, 239, 252, 169, 22, 143}
 
 	for _, tc := range tests {
 		digest, err := tc.input.Digest()
@@ -68,7 +76,7 @@ func TestBuildAssumeRoleDigest(t *testing.T) {
 	}
 }
 
-func TestVerifyAssumeRoleRequest(t *testing.T) {
+func TestVerifyAssumeAwsIamRequest(t *testing.T) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -119,11 +127,14 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := AssumeRoleRequest{
-		Role:            "test",
-		Account:         "12345",
-		CertFingerprint: [32]byte{0, 10, 20, 30},
-		TimeNanos:       time.Unix(10, 10).UnixNano(),
+	req := AssumeAwsIamRequest{
+
+		Account: "12345",
+		AssumeRequest: AssumeRequest{
+			Role:            "test",
+			CertFingerprint: [32]byte{0, 10, 20, 30},
+			TimeNanos:       time.Unix(10, 10).UnixNano(),
+		},
 	}
 
 	type test struct {
@@ -142,8 +153,8 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 		"certificate expired":           {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: cert, err: &ErrInvalidSignature{Reason: "certificate already expired at 1970-01-01T00:00:12Z"}},
 		"certificate missing NotBefore": {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: missingInforCert, err: &ErrInvalidSignature{Reason: "certificate does not have a validity interval specified"}},
 		"certificate missing NotAfter":  {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: missingInforCert, err: &ErrInvalidSignature{Reason: "certificate does not have a validity interval specified"}},
-		"signature in future":           {useInvalidData: false, time: time.Unix(0, 0), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T00:00:10Z is in the future"}},
-		"signature too far in past":     {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: othercert, err: &ErrInvalidSignature{Reason: "signature time 1970-01-01T00:00:10Z is too old"}},
+		"signature in future":           {useInvalidData: false, time: time.Unix(0, 0), cert: othercert, err: &ErrInvalidSignature{Reason: "payload time 1970-01-01T00:00:10Z is in the future"}},
+		"signature too far in past":     {useInvalidData: false, time: time.Unix(10, 10).Add(time.Hour * 10), cert: othercert, err: &ErrInvalidSignature{Reason: "payload time 1970-01-01T00:00:10Z is too old"}},
 	}
 
 	for name, tc := range tests {
@@ -153,13 +164,17 @@ func TestVerifyAssumeRoleRequest(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		r := req
-		if tc.useInvalidData {
-			// change the data so the payload being verified is different
-			r.Account = "different"
+		signed := &SignedAssumeAwsIamRequest{
+			AssumeAwsIamRequest: req,
+			Sig:                 sig,
 		}
 
-		err = r.Valid(sig, tc.cert, WithVerificationTime(tc.time, 5*time.Minute))
+		if tc.useInvalidData {
+			// change the data so the payload being verified is different
+			signed.AssumeAwsIamRequest.Account = "different"
+		}
+
+		err = Valid(signed, tc.cert, WithVerificationTime(tc.time, 5*time.Minute))
 		if tc.err == nil && err != nil {
 			t.Fatalf("%s: expected no error but got: %+v", name, err)
 		}
