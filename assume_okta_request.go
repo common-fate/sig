@@ -10,16 +10,22 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var _ SignedDigestible = &SignedAssumeOktaRequest{}
+
 type AssumeOktaResults struct {
+}
+type AssumeOktaRequest struct {
+	AssumeRequest
+	Group string `json:"group"`
 }
 type SignedAssumeOktaRequest struct {
 	AssumeOktaRequest
 	Sig []byte `json:"sig"`
 }
 
-type AssumeOktaRequest struct {
-	AssumeRequest
-	Group string `json:"group"`
+// Implementation of the SignedDigestible interface
+func (s *SignedAssumeOktaRequest) Signature() []byte {
+	return s.Sig
 }
 
 // Digest builds the canonical digest of the assume role

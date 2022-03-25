@@ -10,16 +10,22 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var _ SignedDigestible = &SignedAssumeAwsSsoRequest{}
+
 type AssumeAwsSsoResults struct {
+}
+type AssumeAwsSsoRequest struct {
+	AssumeRequest
+	Account string `json:"account"`
 }
 type SignedAssumeAwsSsoRequest struct {
 	AssumeAwsSsoRequest
 	Sig []byte `json:"sig"`
 }
 
-type AssumeAwsSsoRequest struct {
-	AssumeRequest
-	Account string `json:"account"`
+// Implementation of the SignedDigestible interface
+func (s *SignedAssumeAwsSsoRequest) Signature() []byte {
+	return s.Sig
 }
 
 // Digest builds the canonical digest of the assume role

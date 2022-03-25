@@ -11,11 +11,16 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// AssumeRequest contains fields that are common across all access request types
+// Fields that are unique to a request type, for exampel Okta requires a Group.
+// Should be added on the specific request type which inherits from this base type
 type AssumeRequest struct {
-	Role                        string   `json:"role"`
-	CertFingerprint             [32]byte `json:"cert"`
-	Reason                      *string  `json:"reason"`
-	RoleAccessRequestMerkleHash []byte   `json:"rarMerkleHash"`
+	Role            string   `json:"role"`
+	CertFingerprint [32]byte `json:"cert"`
+	Reason          *string  `json:"reason"`
+	// Used to identify an approval request that belongs to this request.
+	// The access handler will use this to make a decision about whether this request is actually approved.
+	RoleAccessRequestMerkleHash []byte `json:"rarMerkleHash"`
 	// TimeNanos is the timestamp in UTC nanoseconds since epoch
 	TimeNanos int64 `json:"time"`
 }
@@ -34,9 +39,15 @@ func (a *AssumeRequest) Proto() sigv1alpha1.AssumeSignature {
 	}
 }
 
-type Digestible interface {
+// This interface makes it simple to support many request types
+type SignedDigestible interface {
+	// convert the payload to a hashable format and return the hash
 	Digest() ([]byte, error)
+	// The time of the request
 	Time() time.Time
+	// The signature of the request.
+	// This is validated against the digest to prove that the bearer of the certificate has access to the private key
+	Signature() []byte
 }
 
 type ErrInvalidSignature struct {
@@ -62,7 +73,7 @@ func (e ErrInvalidCertificate) Error() string { return e.Reason }
 //
 // Timestamps are considered valid if they have occurred up to 5 minutes before time.Now().
 // sig.WithVerificationTime() can be passed to customise this.
-func Valid(sig []byte, cert *x509.Certificate, payload Digestible, opts ...func(*verifyConf)) error {
+func Valid(signedPayload SignedDigestible, cert *x509.Certificate, opts ...func(*verifyConf)) error {
 	cfg := &verifyConf{
 		Now:             time.Now(),
 		AllowedDuration: time.Minute * 5,
@@ -87,7 +98,7 @@ func Valid(sig []byte, cert *x509.Certificate, payload Digestible, opts ...func(
 	if certificateExpired {
 		return &ErrInvalidSignature{Reason: fmt.Sprintf("certificate already expired at %s", cert.NotAfter.UTC().Format(time.RFC3339))}
 	}
-	digest, err := payload.Digest()
+	digest, err := signedPayload.Digest()
 	if err != nil {
 		return &ErrInvalidSignature{Reason: fmt.Sprintf("error building digest: %s", err.Error())}
 	}
@@ -97,14 +108,14 @@ func Valid(sig []byte, cert *x509.Certificate, payload Digestible, opts ...func(
 	}
 
 	// check the timestamp in the payload matches
-	if payload.Time().After(cfg.Now) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("payload time %s is in the future", payload.Time().UTC().Format(time.RFC3339))}
+	if signedPayload.Time().After(cfg.Now) {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("payload time %s is in the future", signedPayload.Time().UTC().Format(time.RFC3339))}
 	}
-	if payload.Time().Before(cfg.Now.Add(-cfg.AllowedDuration)) {
-		return &ErrInvalidSignature{Reason: fmt.Sprintf("payload time %s is too old", payload.Time().UTC().Format(time.RFC3339))}
+	if signedPayload.Time().Before(cfg.Now.Add(-cfg.AllowedDuration)) {
+		return &ErrInvalidSignature{Reason: fmt.Sprintf("payload time %s is too old", signedPayload.Time().UTC().Format(time.RFC3339))}
 	}
 
-	valid := ecdsa.VerifyASN1(key, digest, sig)
+	valid := ecdsa.VerifyASN1(key, digest, signedPayload.Signature())
 	if !valid {
 		return &ErrInvalidSignature{Reason: "signature is invalid"}
 	}

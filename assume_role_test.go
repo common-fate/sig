@@ -164,13 +164,17 @@ func TestVerifyAssumeAwsIamRequest(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		r := req
-		if tc.useInvalidData {
-			// change the data so the payload being verified is different
-			r.Account = "different"
+		signed := &SignedAssumeAwsIamRequest{
+			AssumeAwsIamRequest: req,
+			Sig:                 sig,
 		}
 
-		err = Valid(sig, tc.cert, &r, WithVerificationTime(tc.time, 5*time.Minute))
+		if tc.useInvalidData {
+			// change the data so the payload being verified is different
+			signed.AssumeAwsIamRequest.Account = "different"
+		}
+
+		err = Valid(signed, tc.cert, WithVerificationTime(tc.time, 5*time.Minute))
 		if tc.err == nil && err != nil {
 			t.Fatalf("%s: expected no error but got: %+v", name, err)
 		}
