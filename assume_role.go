@@ -15,20 +15,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type TokenContextResults struct {
-	Token string
-	Title string
-}
-type SignedTokenContextRequest struct {
-	TokenContextRequest
-	Sig []byte `json:"sig"`
-}
-type TokenContextRequest struct {
-	TriggerToken *string `json:"token"`
-	// TimeNanos is the timestamp in UTC nanoseconds since epoch
-	TimeNanos int64 `json:"time"`
-}
-
 type AssumeRoleResults struct {
 	AccessKeyID     string
 	SecretAccessKey string

@@ -16,3 +16,9 @@ message AssumeRoleSignature {
 	optional string reason = 5;
 	optional bytes role_access_Request_merkle_hash = 6;
 }
+
+message TokenContextSignature {
+	string token = 1;
+	bytes certificate_fingerprint = 2;
+	
+}
