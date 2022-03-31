@@ -12,6 +12,7 @@ import (
 type TokenContextResults struct {
 	Token string
 	Title string
+	Link  string
 }
 type SignedTokenContextRequest struct {
 	TokenContextRequest
