@@ -40,3 +40,8 @@ message AssumeAwsSsoSignature {
 	string account = 2;
 }
 
+message TokenContextSignature {
+	string token = 1;
+	bytes certificate_fingerprint = 2;
+	
+}
