@@ -44,3 +44,11 @@ message TokenContextSignature {
 	string token = 1;
 	bytes certificate_fingerprint = 2;
 }
+
+message EnrollAccessHandlerSignature {
+	string token = 1;
+	google.protobuf.Timestamp timestamp = 2;
+	bytes certificate_fingerprint = 3;
+	string provider_id = 4;
+	string access_handler_url = 5;
+}
