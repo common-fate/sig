@@ -24,6 +24,11 @@ type EnrollAccessHandlerRequest struct {
 	TimeNanos        int64    `json:"time"`
 }
 
+type SignedEnrollAccessHandlerRequest struct {
+	EnrollAccessHandlerRequest
+	Sig []byte `json:"sig"`
+}
+
 // Digest builds the canonical digest of the assume role
 // payload which can be signed and verified.
 func (a *EnrollAccessHandlerRequest) Digest() ([]byte, error) {
