@@ -43,5 +43,4 @@ message AssumeAwsSsoSignature {
 message TokenContextSignature {
 	string token = 1;
 	bytes certificate_fingerprint = 2;
-	
 }

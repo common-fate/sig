@@ -145,7 +145,6 @@ func TestVerifyAssumeAwsIamRequest(t *testing.T) {
 	}
 
 	tests := map[string]test{
-
 		"valid":                         {useInvalidData: false, time: time.Unix(11, 10), cert: cert, err: nil},
 		"invalid data":                  {useInvalidData: true, time: time.Unix(11, 10), cert: cert, err: &ErrInvalidSignature{Reason: "signature is invalid"}},
 		"invalid cert":                  {useInvalidData: false, time: time.Unix(11, 10), cert: cert, err: &ErrInvalidSignature{Reason: "signature is invalid"}},
